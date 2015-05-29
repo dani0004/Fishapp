@@ -1,0 +1,15 @@
+{
+  "name": "cloudant_boilerplate_nodejs",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "cloudant": "*",
+    "ejs": "*",
+    "express": "3.2.6",
+    "gopher": "^0.2.1",
+    "twilio": "^2.2.0"
+  }
+}
