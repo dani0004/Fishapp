@@ -1,0 +1,453 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1187\cocoasubrtf400
+{\fonttbl\f0\fnil\fcharset0 Monaco;}
+{\colortbl;\red255\green255\blue255;\red63\green95\blue191;\red42\green0\blue255;\red63\green127\blue95;
+\red127\green0\blue85;}
+\margl1440\margr1440\vieww10800\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720
+
+\f0\fs22 \cf2 /**\cf0 \
+ \cf2 *\cf0  \cf2 Module\cf0  \cf2 dependencies.\cf0 \
+ \cf2 */\cf0 \
+require (\cf3 'knj-plugin'\cf0 );\
+require (\cf3 'loganalysis'\cf0 );\
+\
+\pard\pardeftab720
+\cf4 //\ul var\ulnone  parse = require('\ul csv\ulnone -parse');\cf0 \
+\cf4 //\ul var\ulnone  transform = require('stream-transform');\cf0 \
+\pard\pardeftab720
+\cf5 var\cf0  express = require(\cf3 'express'\cf0 ), routes = require(\cf3 './routes'\cf0 ), \
+user = require(\cf3 './routes/user'\cf0 ), \
+http = require(\cf3 'http'\cf0 ), path = require(\cf3 'path'\cf0 ), fs = require(\cf3 'fs'\cf0 );\
+\pard\pardeftab720
+\cf4 //\ul var\ulnone  species = require('./species')\cf0 \
+\pard\pardeftab720
+\cf5 var\cf0  app = express();\
+\
+\cf5 var\cf0  db;\
+\
+\cf5 var\cf0  cloudant;\
+\
+\cf5 var\cf0  fileToUpload;\
+\
+\cf5 var\cf0  dbCredentials = \{\
+	dbName : \cf3 'fishdb'\cf0 \
+\};\
+\
+\
+\pard\pardeftab720
+\cf4 // all environments\cf0 \
+app.set(\cf3 'port'\cf0 , process.env.PORT || 3000);\
+app.set(\cf3 'views'\cf0 , __dirname + \cf3 '/views'\cf0 );\
+app.set(\cf3 'view engine'\cf0 , \cf3 'ejs'\cf0 );\
+app.engine(\cf3 'html'\cf0 , require(\cf3 'ejs'\cf0 ).renderFile);\
+app.use(express.favicon());\
+app.use(express.logger(\cf3 'dev'\cf0 ));\
+app.use(express.bodyParser());\
+app.use(express.multipart());\
+app.use(express.methodOverride());\
+app.use(app.router);\
+\cf4 //app.use('/species',species);\cf0 \
+app.use(express.\cf5 static\cf0 (path.join(__dirname, \cf3 'public'\cf0 )));\
+app.use(\cf3 '/style'\cf0 , express.\cf5 static\cf0 (path.join(__dirname, \cf3 '/views/style'\cf0 )));\
+\
+\cf4 // development only\cf0 \
+\pard\pardeftab720
+\cf5 if\cf0  (\cf3 'development'\cf0  == app.get(\cf3 'env'\cf0 )) \{\
+	app.use(express.errorHandler());\
+\}\
+\
+\cf5 function\cf0  initDBConnection() \{\
+	\
+	\cf5 if\cf0 (process.env.VCAP_SERVICES) \{\
+		\cf5 var\cf0  vcapServices = JSON.parse(process.env.VCAP_SERVICES);\
+		\cf5 if\cf0 (vcapServices.cloudantNoSQLDB) \{\
+			dbCredentials.host = vcapServices.cloudantNoSQLDB[0].credentials.host;\
+			dbCredentials.port = vcapServices.cloudantNoSQLDB[0].credentials.port;\
+			dbCredentials.user = vcapServices.cloudantNoSQLDB[0].credentials.username;\
+			dbCredentials.password = vcapServices.cloudantNoSQLDB[0].credentials.password;\
+			dbCredentials.url = vcapServices.cloudantNoSQLDB[0].credentials.url;\
+		\}\
+		console.log(\cf3 'VCAP Services: '\cf0 +JSON.stringify(process.env.VCAP_SERVICES));\
+	\}\
+\
+	cloudant = require(\cf3 'cloudant'\cf0 )(dbCredentials.url);\
+	\
+	\cf4 //check if DB exists if not create\cf0 \
+	cloudant.db.create(dbCredentials.dbName, \cf5 function\cf0  (err, res) \{\
+		\cf5 if\cf0  (err) \{ console.log(\cf3 'could not create db '\cf0 , err); \}\
+    \});\
+	db = cloudant.use(dbCredentials.dbName);\
+	console.log(\cf3 "after getting db"\cf0 )\
+	\cf5 if\cf0 (db !=\cf5 null\cf0 )\
+		\{\
+		\cf4 //cloudant.db.destroy("\ul myfish\ulnone ",function(error,res)\{\});\cf0 \
+		\cf4 /*cloudant.db.create("\ul myfish\ulnone ", \cf0 \
+\pard\pardeftab720
+\cf4 		\cf0 \
+\cf4 		function(error,res)\{\});\cf0 \
+\cf4 		\cf0 \
+\cf4 		cloudant.db.create("species", \cf0 \
+\cf4 				\cf0 \
+\cf4 				function(error,res)\{\});\cf0 \
+\cf4 		cloudant.db.create("\ul effluents\ulnone ", \cf0 \
+\cf4 				\cf0 \
+\cf4 				function(error,res)\{\});*/\cf0 \
+		\
+		\
+		cloudant.db.list(\cf5 function\cf0 (error,res)\{\
+			console.log(\cf3 'All my databases: %s'\cf0 , res.join(\cf3 ', '\cf0 ))\
+		\});	\
+		\
+		\cf5 var\cf0  fspecies=cloudant.use(\cf3 "species"\cf0 );\
+		fspecies.insert(\{\
+			fishNameE:\cf3 'crappie'\cf0 ,\
+			fishNameF:\cf3 'le crappie'\cf0 \
+		\},\cf3 'doc5'\cf0 ,\
+				\cf5 function\cf0 (err, body, header) \{\
+	        \cf5 if\cf0  (err)\
+	          \cf5 return\cf0  console.log(\cf3 '[species.insert] '\cf0 , err.message)\
+\
+	        console.log(\cf3 'you have inserted doc5 into species.'\cf0 )\
+	        console.log(body)\
+	      \})\
+				\
+		\
+			\
+		\}\
+\}\
+\
+initDBConnection();\
+\
+app.get(\cf3 '/'\cf0 , routes.index);\
+\cf4 //app.get('/species', routes.species);\cf0 \
+app.get(\cf3 '/'\cf0 , \cf5 function\cf0  (req, res) \{\
+\
+\
+	\cf4 /*\ul db\ulnone  = cloudant.use(dbCredentials.dbName);\cf0 \
+\cf4 	\ul var\ulnone  docList = [];\cf0 \
+\cf4 	\ul var\ulnone  i = 0;\cf0 \
+\cf4 	db.list(function(err, body) \{\cf0 \
+\cf4 		\cf0 \
+\cf4 	\});*/\cf0 \
+	res.status(200).json(\{ a : 1\});\
+\});	\
+\
+	\cf4 // POST method route\cf0 \
+\cf4 /*app.post('/', function (\ul req\ulnone , res) \{\cf0 \
+\cf4 	  res.send('POST request to the \ul homepage\ulnone ');\cf0 \
+\cf4 	\});*/\cf0 \
+\
+\
+\pard\pardeftab720
+\cf5 function\cf0  createResponseData(id, name, value, attachments) \{\
+\
+	\cf5 var\cf0  responseData = \{\
+		id : id,\
+		name : name,\
+		value : value,\
+		attachements : []\
+	\};\
+	\
+	 \
+	attachments.forEach (\cf5 function\cf0 (item, index) \{\
+		\cf5 var\cf0  attachmentData = \{\
+			content_type : item.type,\
+			key : item.key,\
+			url : \cf3 'http://'\cf0  + dbCredentials.user + \cf3 ":"\cf0  + dbCredentials.password\
+					+ \cf3 '@'\cf0  + dbCredentials.host + \cf3 '/'\cf0  + dbCredentials.dbName\
+					+ \cf3 "/"\cf0  + id + \cf3 '/'\cf0  + item.key\
+		\};\
+		responseData.attachements.push(attachmentData);\
+		\
+	\});\
+	\cf5 return\cf0  responseData;\
+\}\
+\
+\
+\cf5 var\cf0  saveDocument = \cf5 function\cf0 (id, name, value, response) \{\
+	\
+	\cf5 if\cf0 (id === \cf5 undefined\cf0 ) \{\
+		\cf4 //Generated random id\cf0 \
+		id = \cf3 ''\cf0 ;\
+	\}\
+	\
+	db.insert(\{\
+		name : name,\
+		value : value\
+	\}, id, \cf5 function\cf0 (err, doc) \{\
+		\cf5 if\cf0 (err) \{\
+			console.log(err);\
+			response.send(500);\
+		\} \cf5 else\cf0 \
+			response.send(200);\
+		response.end();\
+	\});\
+	\
+\}\
+\
+\
+app.post(\cf3 '/api/favorites/attach'\cf0 , \cf5 function\cf0 (request, response) \{\
+\
+	console.log(\cf3 "Upload File Invoked.."\cf0 );\
+	console.log(\cf3 'Request: '\cf0  + JSON.stringify(request.headers));\
+	\
+	\cf5 var\cf0  id;\
+	\
+	db.get(request.query.id, \cf5 function\cf0 (err, existingdoc) \{\
+		\
+		\
+		\cf5 var\cf0  isExistingDoc = \cf5 false\cf0 ;\
+		\cf5 if\cf0  (!existingdoc) \{\
+			id = \cf3 '-1'\cf0 ;\
+		\} \cf5 else\cf0  \{\
+			id = existingdoc.id;\
+			isExistingDoc = \cf5 true\cf0 ;\
+		\}\
+\
+		\cf5 var\cf0  name = request.query.name;\
+		\cf5 var\cf0  value = request.query.value;\
+\
+		\cf5 var\cf0  file = request.files.file;\
+		\cf5 var\cf0  newPath = \cf3 './public/uploads/'\cf0 \
+				+ file.name;\
+		\
+		\
+		\cf5 var\cf0  insertAttachment = \cf5 function\cf0 (file, id, rev, name, value, response) \{\
+			\
+			fs.readFile(file.path, \cf5 function\cf0 (err, data) \{\
+				  \cf5 if\cf0  (!err) \{\
+				    \
+					  \cf5 if\cf0 (file) \{\
+						  \
+						  db.attachment.insert(id, \cf4 /*value*/\cf0 file.name, data, file.type,\
+						      \{rev: rev\}, \cf5 function\cf0 (err, document) \{\
+						        \cf5 if\cf0  (!err) \{\
+						        	console.log(\cf3 'Attachment saved successfully.. '\cf0 );\
+	\
+									db.get(document.id, \cf5 function\cf0 (err, doc) \{\
+										console.log(\cf3 'Attachements from server --> '\cf0  + JSON.stringify(doc._attachments));\
+										\
+										\cf5 var\cf0  attachements = [];\
+										\cf5 var\cf0  attachData;\
+										\cf5 for\cf0 (\cf5 var\cf0  attachment \cf5 in\cf0  doc._attachments) \{\
+\pard\pardeftab720
+\cf4 //											console.log('\ul Attachement\ulnone  from server --> ' + JSON.stringify(attachment));\cf0 \
+											\cf5 if\cf0 (attachment == value) \{\
+												attachData = \{\cf3 "key"\cf0 : attachment, \cf3 "type"\cf0 : file.type\};\
+											\} \cf5 else\cf0  \{\
+												attachData = \{\cf3 "key"\cf0 : attachment, \cf3 "type"\cf0 : doc._attachments[attachment][\cf3 'content_type'\cf0 ]\};\
+											\}\
+											attachements.push(attachData);\
+										\}\
+										\cf5 var\cf0  responseData = createResponseData(\
+												id,\
+												name,\
+												value,\
+												attachements);\
+										console.log(\cf3 'Response after attachment: \\n'\cf0 +JSON.stringify(responseData));\
+										response.write(JSON.stringify(responseData));\
+										response.end();\
+										\cf5 return\cf0 ;\
+									\});\
+						        \} \cf5 else\cf0  \{\
+						        	console.log(err);\
+						        \}\
+						    \});\
+					  \}\
+					  \
+\
+				  \}\
+				\});\
+		\}\
+\
+		\cf5 if\cf0  (!isExistingDoc) \{\
+			existingdoc = \{\
+				name : name,\
+				value : value,\
+				create_date : \cf5 new\cf0  Date()\
+			\};\
+			\
+			\cf4 // save doc\cf0 \
+			db.insert(\{\
+				name : name,\
+				value : value\
+			\}, \cf3 ''\cf0 , \cf5 function\cf0 (err, doc) \{\
+				\cf5 if\cf0 (err) \{\
+					console.log(err);\
+				\} \cf5 else\cf0  \{\
+					\
+					existingdoc = doc;\
+					console.log(\cf3 "New doc created .."\cf0 );\
+					console.log(existingdoc);\
+					insertAttachment(file, existingdoc.id, existingdoc.rev, name, value, response);\
+					\
+				\}\
+			\});\
+			\
+		\} \cf5 else\cf0  \{\
+			console.log(\cf3 'Adding attachment to existing doc.'\cf0 );\
+			console.log(existingdoc);\
+			insertAttachment(file, existingdoc._id, existingdoc._rev, name, value, response);\
+		\}\
+		\
+	\});\
+\
+\});\
+\
+app.post(\cf3 '/api/favorites'\cf0 , \cf5 function\cf0 (request, response) \{\
+\
+	console.log(\cf3 "Create Invoked.."\cf0 );\
+	console.log(\cf3 "Name: "\cf0  + request.body.name);\
+	console.log(\cf3 "Value: "\cf0  + request.body.value);\
+	\
+	\cf4 //\ul var\ulnone  id = request.body.id;\cf0 \
+	\cf5 var\cf0  name = request.body.name;\
+	\cf5 var\cf0  value = request.body.value;\
+	\
+	saveDocument(\cf5 null\cf0 , name, value, response);\
+\
+\});\
+\
+app.del(\cf3 '/api/favorites'\cf0 , \cf5 function\cf0 (request, response) \{\
+\
+	console.log(\cf3 "Delete Invoked.."\cf0 );\
+	\cf5 var\cf0  id = request.query.id;\
+	\cf4 // \ul var\ulnone  \ul rev\ulnone  = request.query.rev; // \ul Rev\ulnone  can be fetched from request. if needed, send the \ul rev\ulnone  from client\cf0 \
+	console.log(\cf3 "Removing document of ID: "\cf0  + id);\
+	console.log(\cf3 'Request Query: '\cf0 +JSON.stringify(request.query));\
+	\
+	db.get(id, \{ revs_info: \cf5 true\cf0  \}, \cf5 function\cf0 (err, doc) \{\
+		\cf5 if\cf0  (!err) \{\
+			db.destroy(doc._id, doc._rev, \cf5 function\cf0  (err, res) \{\
+			     \cf4 // Handle response\cf0 \
+				 \cf5 if\cf0 (err) \{\
+					 console.log(err);\
+					 response.send(500);\
+				 \} \cf5 else\cf0  \{\
+					 response.send(200);\
+				 \}\
+			\});\
+		\}\
+	\});\
+\
+\});\
+\
+app.put(\cf3 '/api/favorites'\cf0 , \cf5 function\cf0 (request, response) \{\
+\
+	console.log(\cf3 "Update Invoked.."\cf0 );\
+	\
+	\cf5 var\cf0  id = request.body.id;\
+	\cf5 var\cf0  name = request.body.name;\
+	\cf5 var\cf0  value = request.body.value;\
+	\
+	console.log(\cf3 "ID: "\cf0  + id);\
+	\
+	db.get(id, \{ revs_info: \cf5 true\cf0  \}, \cf5 function\cf0 (err, doc) \{\
+		\cf5 if\cf0  (!err) \{\
+			console.log(doc);\
+			doc.name = name;\
+			doc.value = value;\
+			db.insert(doc, doc.id, \cf5 function\cf0 (err, doc) \{\
+				\cf5 if\cf0 (err) \{\
+					console.log(\cf3 'Error inserting data\\n'\cf0 +err);\
+					\cf5 return\cf0  500;\
+				\}\
+				\cf5 return\cf0  200;\
+			\});\
+		\}\
+	\});\
+\});\
+\
+app.get(\cf3 '/api/favorites'\cf0 , \cf5 function\cf0 (request, response) \{\
+\
+	console.log(\cf3 "Get method invoked.. "\cf0 )\
+	\
+	db = cloudant.use(dbCredentials.dbName);\
+	\cf5 var\cf0  docList = [];\
+	\cf5 var\cf0  i = 0;\
+	db.list(\cf5 function\cf0 (err, body) \{\
+		\cf5 if\cf0  (!err) \{\
+			\cf5 var\cf0  len = body.rows.length;\
+			console.log(\cf3 'total # of docs -> '\cf0 +len);\
+			\cf5 if\cf0 (len == 0) \{\
+				\cf4 //push sample data\cf0 \
+				\cf4 // save doc\cf0 \
+				\cf5 var\cf0  docName = \cf3 'sample_doc'\cf0 ;\
+				\cf5 var\cf0  docDesc = \cf3 'A sample Document'\cf0 ;\
+				db.insert(\{\
+					name : docName,\
+					value : \cf3 'A sample Document'\cf0 \
+				\}, \cf3 ''\cf0 , \cf5 function\cf0 (err, doc) \{\
+					\cf5 if\cf0 (err) \{\
+						console.log(err);\
+					\} \cf5 else\cf0  \{\
+						\
+						console.log(\cf3 'Document : '\cf0 +JSON.stringify(doc));\
+						\cf5 var\cf0  responseData = createResponseData(\
+							doc.id,\
+							docName,\
+							docDesc,\
+							[]);\
+						docList.push(responseData);\
+						response.write(JSON.stringify(docList));\
+						console.log(JSON.stringify(docList));\
+						console.log(\cf3 'ending response...'\cf0 );\
+						response.end();\
+					\}\
+				\});\
+			\} \cf5 else\cf0  \{\
+\
+				body.rows.forEach(\cf5 function\cf0 (document) \{\
+					\
+					db.get(document.id, \{ revs_info: \cf5 true\cf0  \}, \cf5 function\cf0 (err, doc) \{\
+					\cf5 if\cf0  (!err)\
+						\cf5 if\cf0 (doc[\cf3 '_attachments'\cf0 ]) \{\
+							\
+							\cf5 var\cf0  attachments = [];\
+							\cf5 for\cf0 (\cf5 var\cf0  attribute \cf5 in\cf0  doc[\cf3 '_attachments'\cf0 ])\{\
+								\
+								\cf5 if\cf0 (doc[\cf3 '_attachments'\cf0 ][attribute] && doc[\cf3 '_attachments'\cf0 ][attribute][\cf3 'content_type'\cf0 ]) \{\
+									attachments.push(\{\cf3 "key"\cf0 : attribute, \cf3 "type"\cf0 : doc[\cf3 '_attachments'\cf0 ][attribute][\cf3 'content_type'\cf0 ]\});\
+								\}\
+							    console.log(attribute+\cf3 ": "\cf0 +JSON.stringify(doc[\cf3 '_attachments'\cf0 ][attribute]));\
+							\}\
+							\cf5 var\cf0  responseData = createResponseData(\
+									doc._id,\
+									doc.name,\
+									doc.value,\
+									attachments);\
+							\
+						\} \cf5 else\cf0  \{\
+							\cf5 var\cf0  responseData = createResponseData(\
+									doc._id,\
+									doc.name,\
+									doc.value,\
+									[]);\
+						\}\
+						\
+						docList.push(responseData);\
+						i++;\
+						\cf5 if\cf0 (i >= len) \{\
+							response.write(JSON.stringify(docList));\
+							console.log(\cf3 'ending response...'\cf0 );\
+							response.end();\
+						\}\
+					\});\
+					\
+				\});\
+			\}\
+			\
+		\} \cf5 else\cf0  \{\
+			console.log(err);\
+		\}\
+	\});\
+\
+\});\
+\
+\
+http.createServer(app).listen(app.get(\cf3 'port'\cf0 ), \cf5 function\cf0 () \{\
+	console.log(\cf3 'Express server listening on port '\cf0  + app.get(\cf3 'port'\cf0 ));\
+\});\
+\
+}
